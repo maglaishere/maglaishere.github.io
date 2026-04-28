@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TDEE Calculator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; image-rendering: pixelated; }
+  :root {
+    --black: #0f0f0f; --dark: #1a1a2e; --panel: #16213e;
+    --panel2: #0f3460; --green: #00ff41; --yellow: #ffd700;
+    --cyan: #00ffff; --pink: #ff006e; --orange: #ff6b00;
+    --white: #e0e0e0; --gray: #888; --dimgreen: #005a17;
+    --border: #00ff41; --scanline: rgba(0,255,65,0.03);
+  }
+  body {
+    font-family: 'Press Start 2P', monospace;
+    background: var(--black);
+    color: var(--green);
+    min-height: 100vh;
+    padding: 1rem;
+    font-size: 8px;
+    line-height: 1.8;
+    overflow-x: hidden;
+  }
+  body::before {
+    content: '';
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, var(--scanline) 2px, var(--scanline) 4px);
+    pointer-events: none; z-index: 9999;
+  }
+  .container { max-width: 640px; margin: 0 auto; }
+  .title {
+    font-size: 14px; color: var(--yellow); text-align: center;
+    margin-bottom: .5rem; letter-spacing: 2px;
+    text-shadow: 2px 2px 0 var(--orange), 4px 4px 0 #7a3000;
+  }
+  .subtitle { font-size: 7px; color: var(--cyan); text-align: center; margin-bottom: 1.5rem; letter-spacing: 1px; }
+  .section {
+    border: 2px solid var(--green);
+    background: var(--panel);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+    box-shadow: 4px 4px 0 var(--dimgreen);
+  }
+  .section::before {
+    content: '';
+    position: absolute; top: 2px; left: 2px; right: 2px; bottom: 2px;
+    border: 1px solid rgba(0,255,65,0.15);
+    pointer-events: none;
+  }
+  .section-title {
+    font-size: 8px; color: var(--yellow); margin-bottom: 1rem;
+    border-bottom: 1px solid var(--dimgreen); padding-bottom: 6px;
+    letter-spacing: 1px;
+  }
+  .section-title::before { content: '> '; color: var(--cyan); }
+  .slider-row { display: flex; align-items: center; gap: 8px; margin-bottom: .8rem; flex-wrap: wrap; }
+  .slider-label { font-size: 7px; color: var(--cyan); min-width: 160px; }
+  .slider-val { font-size: 8px; font-weight: 400; min-width: 80px; text-align: right; color: var(--yellow); }
+  input[type=range] {
+    flex: 1; min-width: 80px;
+    -webkit-appearance: none; appearance: none;
+    height: 8px; background: var(--dimgreen);
+    outline: none; border: 1px solid var(--green);
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px;
+    background: var(--green); cursor: pointer;
+    border: 2px solid var(--black);
+    box-shadow: 2px 2px 0 var(--dimgreen);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--green); cursor: pointer;
+    border: 2px solid var(--black); border-radius: 0;
+  }
+  .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; margin-top: 1rem; }
+  .metric {
+    background: var(--black); border: 2px solid var(--cyan);
+    padding: .75rem; box-shadow: 3px 3px 0 #004a4a;
+  }
+  .metric-label { font-size: 6px; color: var(--gray); margin-bottom: 6px; }
+  .metric-val { font-size: 16px; color: var(--green); line-height: 1.2; }
+  .metric-unit { font-size: 6px; color: var(--gray); margin-top: 4px; }
+  textarea {
+    width: 100%; min-height: 80px; font-size: 7px;
+    font-family: 'Press Start 2P', monospace;
+    border: 2px solid var(--green); padding: 8px;
+    background: var(--black); color: var(--green); resize: vertical;
+    outline: none; line-height: 2;
+  }
+  textarea:focus { border-color: var(--yellow); color: var(--yellow); }
+  textarea::placeholder { color: var(--dimgreen); }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: .75rem; }
+  .input-group { display: flex; flex-direction: column; gap: 6px; }
+  .input-label { font-size: 6px; color: var(--cyan); }
+  input[type=number] {
+    width: 100%; font-size: 9px;
+    font-family: 'Press Start 2P', monospace;
+    border: 2px solid var(--green); padding: 6px 8px;
+    background: var(--black); color: var(--green); outline: none;
+  }
+  input[type=number]:focus { border-color: var(--yellow); color: var(--yellow); }
+  .hint { font-size: 6px; color: var(--gray); margin-top: 2px; margin-bottom: .5rem; }
+  .hint::before { content: '// '; color: var(--dimgreen); }
+  .badge {
+    display: inline-block; font-size: 6px; padding: 2px 6px;
+    background: var(--panel2); color: var(--cyan);
+    border: 1px solid var(--cyan); margin-left: 6px; vertical-align: middle;
+  }
+  .info-pill {
+    font-size: 6px; padding: 4px 8px;
+    background: var(--black); color: var(--orange);
+    border: 1px solid var(--orange); display: inline-block; margin-top: 8px;
+  }
+  .info-pill::before { content: '! '; }
+  .breakdown-row {
+    display: flex; justify-content: space-between; align-items: center;
+    font-size: 7px; padding: 5px 0;
+    border-bottom: 1px solid var(--dimgreen);
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .bk-label { color: var(--cyan); flex: 1; }
+  .bk-val { color: var(--green); font-size: 8px; text-align: right; min-width: 90px; }
+  .total-bar {
+    background: var(--black); border: 2px solid var(--yellow);
+    padding: 1rem; display: flex; align-items: center;
+    justify-content: space-between; flex-wrap: wrap; gap: 10px;
+    box-shadow: 4px 4px 0 #7a3000;
+  }
+  .total-label { font-size: 7px; color: var(--yellow); margin-bottom: 6px; }
+  .total-val { font-size: 28px; color: var(--green); line-height: 1; text-shadow: 2px 2px 0 var(--dimgreen); }
+  .total-unit { font-size: 8px; color: var(--gray); }
+  .goal-label { font-size: 6px; color: var(--gray); margin-bottom: 3px; }
+  .goal-val { font-size: 10px; color: var(--cyan); margin-bottom: 8px; }
+  .active-note { font-size: 6px; color: var(--gray); margin-top: 6px; }
+  .active-note::before { content: '>> '; color: var(--dimgreen); }
+  .pixel-bar-wrap { margin-top: 8px; height: 8px; background: var(--dimgreen); border: 1px solid var(--green); }
+  .pixel-bar { height: 100%; background: var(--green); transition: width 0.3s steps(20); width: 0%; }
+ 
+  @media (max-width: 480px) {
+    .title { font-size: 10px; }
+    .two-col { grid-template-columns: 1fr; }
+    .slider-label { min-width: 120px; font-size: 6px; }
+    .total-val { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="title">TDEE CALC</div>
+  <div class="subtitle">*** INSERT WORKOUT TO CONTINUE ***</div>
+ 
+  <div class="section">
+    <div class="section-title">PLAYER STATS</div>
+    <div class="slider-row"><span class="slider-label">HEIGHT (CM)</span><input type="range" id="height" min="140" max="210" step="1" value="173"><span class="slider-val" id="height-out">173 cm</span></div>
+    <div class="slider-row"><span class="slider-label">WEIGHT (KG)</span><input type="range" id="weight" min="40" max="150" step="0.5" value="79"><span class="slider-val" id="weight-out">79 kg</span></div>
+    <div class="slider-row"><span class="slider-label">AGE (YRS)</span><input type="range" id="age" min="15" max="80" step="1" value="23"><span class="slider-val" id="age-out">23 yrs</span></div>
+    <div class="metric-grid">
+      <div class="metric"><div class="metric-label">BMR <span class="badge">MIFFLIN</span></div><div class="metric-val" id="bmr-val">—</div><div class="metric-unit">KCAL / DAY AT REST</div></div>
+      <div class="metric"><div class="metric-label">BMI INDEX</div><div class="metric-val" id="bmi-val">—</div><div class="metric-unit" id="bmi-cat">—</div></div>
+    </div>
+  </div>
+ 
+  <div class="section">
+    <div class="section-title">TODAY'S WORKOUT</div>
+    <textarea id="workout-text" placeholder="BENCH PRESS 4x10&#10;SQUATS 3x12&#10;PULL-UPS 3x8&#10;CURLS 3x15"></textarea>
+    <div class="two-col">
+      <div class="input-group"><span class="input-label">TOTAL DURATION (MIN)</span><input type="number" id="workout-dur" min="0" max="300" value="60"></div>
+      <div class="input-group"><span class="input-label">REST / SET (MIN)</span><input type="number" id="rest-sets" min="0" max="10" step="0.5" value="3.5"></div>
+    </div>
+    <div class="slider-row" style="margin-top:.75rem"><span class="slider-label">RPE LEVEL</span><input type="range" id="rpe" min="1" max="10" step="1" value="8"><span class="slider-val" id="rpe-out">8 / 10</span></div>
+    <div class="hint" id="rpe-hint">VERY HARD — NEAR MAX EFFORT</div>
+    <div class="pixel-bar-wrap"><div class="pixel-bar" id="rpe-bar"></div></div>
+    <div id="workout-summary" class="info-pill">PASTE WORKOUT ABOVE</div>
+  </div>
+ 
+  <div class="section">
+    <div class="section-title">CARDIO MODULE</div>
+    <div class="slider-row"><span class="slider-label">INCLINE WALK (MIN)</span><input type="range" id="incline-dur" min="0" max="120" step="5" value="0"><span class="slider-val" id="incline-out">0 min</span></div>
+    <div class="slider-row"><span class="slider-label">INCLINE GRADE (%)</span><input type="range" id="incline-grade" min="1" max="15" step="1" value="5"><span class="slider-val" id="grade-out">5%</span></div>
+    <div class="slider-row"><span class="slider-label">INCLINE PACE (KM/H)</span><input type="range" id="incline-pace" min="2" max="8" step="0.5" value="4"><span class="slider-val" id="pace-out">4.0 km/h</span></div>
+    <div class="hint" id="incline-pace-hint">LEISURELY WALK</div>
+    <div style="margin-top:.75rem">
+      <div class="slider-row"><span class="slider-label">FLAT WALK (MIN)</span><input type="range" id="flat-dur" min="0" max="120" step="5" value="0"><span class="slider-val" id="flat-out">0 min</span></div>
+      <div class="slider-row"><span class="slider-label">FLAT PACE (KM/H)</span><input type="range" id="flat-pace" min="2" max="8" step="0.5" value="4"><span class="slider-val" id="flat-pace-out">4.0 km/h</span></div>
+      <div class="hint" id="flat-pace-hint">LEISURELY WALK</div>
+    </div>
+  </div>
+ 
+  <div class="section">
+    <div class="section-title">DAILY ACTIVITY</div>
+    <div class="slider-row"><span class="slider-label">CHORES / MOVEMENT (MIN)</span><input type="range" id="chores-dur" min="0" max="240" step="10" value="60"><span class="slider-val" id="chores-out">60 min</span></div>
+    <div class="slider-row"><span class="slider-label">SITTING / RESTING (HRS)</span><input type="range" id="sitting-hr" min="0" max="16" step="0.5" value="8"><span class="slider-val" id="sitting-out">8 hrs</span></div>
+  </div>
+ 
+  <div class="section">
+    <div class="section-title">DAMAGE REPORT</div>
+    <div class="breakdown-row"><span class="bk-label">BMR BASE</span><span class="bk-val" id="bk-bmr">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">WORKOUT (ACTIVE)</span><span class="bk-val" id="bk-workout">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">WORKOUT (REST)</span><span class="bk-val" id="bk-workout-rest">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">INCLINE WALK</span><span class="bk-val" id="bk-incline">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">FLAT WALK</span><span class="bk-val" id="bk-flat">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">CHORES</span><span class="bk-val" id="bk-chores">—</span></div>
+    <div class="breakdown-row"><span class="bk-label">SITTING (IN BMR)</span><span class="bk-val" id="bk-sitting">—</span></div>
+  </div>
+ 
+  <div class="total-bar">
+    <div>
+      <div class="total-label">*** TOTAL DAILY BURN ***</div>
+      <div class="total-val"><span id="tdee-val">—</span></div>
+      <div class="total-unit">KCAL / DAY</div>
+      <div class="active-note" id="active-note"></div>
+    </div>
+    <div style="text-align:right">
+      <div class="goal-label">[-] LOSE 0.5 KG/WEEK</div>
+      <div class="goal-val" id="lose-val">—</div>
+      <div class="goal-label">[+] GAIN 0.5 KG/WEEK</div>
+      <div class="goal-val" id="gain-val">—</div>
+    </div>
+  </div>
+ 
+  <div style="text-align:center;margin-top:1rem;font-size:6px;color:var(--dimgreen)">
+    PRESS START TO CONTINUE &nbsp;|&nbsp; GAME OVER ONLY IF YOU QUIT
+  </div>
+</div>
+ 
+<script>
+function paceLabel(v){v=parseFloat(v);if(v<=3)return'VERY SLOW STROLL';if(v<=4)return'LEISURELY WALK';if(v<=5)return'MODERATE WALK';if(v<=5.5)return'BRISK WALK';if(v<=6.5)return'FAST WALK';if(v<=7.5)return'POWER WALK / LIGHT JOG';return'RUNNING PACE';}
+function rpeLabel(r){r=parseInt(r);if(r<=2)return'VERY EASY — BARELY ANY EFFORT';if(r<=4)return'LIGHT — COULD GO MUCH LONGER';if(r<=5)return'MODERATE — SUSTAINABLE EFFORT';if(r<=6)return'SOMEWHAT HARD — NOTICEABLE';if(r<=7)return'HARD — CHALLENGING BUT OK';if(r<=8)return'VERY HARD — NEAR MAX EFFORT';if(r<=9)return'EXTREMELY HARD — BARELY FINISHING';return'MAX EFFORT — ABSOLUTE LIMIT';}
+function rpeMET(r){r=parseInt(r);if(r<=3)return 2.5;if(r<=5)return 3.0;if(r<=6)return 3.5;if(r<=7)return 4.0;if(r<=8)return 4.5;if(r<=9)return 5.0;return 5.5;}
+function inclineMET(grade,kmh){const s=parseFloat(kmh),g=parseFloat(grade);const base=s<4?2.8:s<5?3.5:s<6?4.3:s<7?5.0:6.0;return base+g*0.32;}
+function flatMET(kmh){const s=parseFloat(kmh);if(s<=3)return 2.5;if(s<=4)return 3.0;if(s<=5)return 3.5;if(s<=6)return 4.5;if(s<=7)return 5.5;return 6.5;}
+function countSets(text){const m=text.match(/\d+\s*x\s*\d+/gi)||[];let t=0;m.forEach(x=>{t+=parseInt(x.split(/x/i)[0])||0;});return t;}
+function sliderBind(id,outId,fmt,cb){const el=document.getElementById(id),out=document.getElementById(outId);const fn=()=>{out.textContent=fmt(el.value);if(cb)cb(el.value);calc();};el.addEventListener('input',fn);out.textContent=fmt(el.value);if(cb)cb(el.value);}
+sliderBind('height','height-out',v=>v+' cm');
+sliderBind('weight','weight-out',v=>v+' kg');
+sliderBind('age','age-out',v=>v+' yrs');
+sliderBind('rpe','rpe-out',v=>v+' / 10',v=>{document.getElementById('rpe-hint').textContent=rpeLabel(v);document.getElementById('rpe-bar').style.width=(parseInt(v)*10)+'%';});
+sliderBind('incline-dur','incline-out',v=>v+' min');
+sliderBind('incline-grade','grade-out',v=>v+'%');
+sliderBind('incline-pace','pace-out',v=>parseFloat(v).toFixed(1)+' km/h',v=>{document.getElementById('incline-pace-hint').textContent=paceLabel(v);});
+sliderBind('flat-dur','flat-out',v=>v+' min');
+sliderBind('flat-pace','flat-pace-out',v=>parseFloat(v).toFixed(1)+' km/h',v=>{document.getElementById('flat-pace-hint').textContent=paceLabel(v);});
+sliderBind('chores-dur','chores-out',v=>v+' min');
+sliderBind('sitting-hr','sitting-out',v=>v+' hrs');
+['workout-dur','rest-sets'].forEach(id=>document.getElementById(id).addEventListener('input',calc));
+document.getElementById('workout-text').addEventListener('input',calc);
+document.getElementById('rpe-bar').style.width='80%';
+function calc(){
+  const h=parseFloat(document.getElementById('height').value);
+  const w=parseFloat(document.getElementById('weight').value);
+  const a=parseFloat(document.getElementById('age').value);
+  const bmr=Math.round(10*w+6.25*h-5*a+5);
+  const bmi=w/((h/100)**2);
+  const bmiCat=bmi<18.5?'UNDERWEIGHT':bmi<25?'NORMAL':bmi<30?'OVERWEIGHT':'OBESE';
+  document.getElementById('bmr-val').textContent=bmr.toLocaleString();
+  document.getElementById('bmi-val').textContent=bmi.toFixed(1);
+  document.getElementById('bmi-cat').textContent=bmiCat;
+  const totalDur=parseFloat(document.getElementById('workout-dur').value)||0;
+  const restPerSet=parseFloat(document.getElementById('rest-sets').value)||3.5;
+  const rpe=parseInt(document.getElementById('rpe').value)||8;
+  const sets=countSets(document.getElementById('workout-text').value);
+  const totalRestMins=Math.min(sets*restPerSet,totalDur*0.75);
+  const activeMins=Math.max(0,totalDur-totalRestMins);
+  const workMET=rpeMET(rpe);
+  const workoutActiveCal=Math.round(workMET*w*(activeMins/60));
+  const workoutRestCal=Math.round(1.3*w*(totalRestMins/60));
+  const workoutTotal=workoutActiveCal+workoutRestCal;
+  document.getElementById('workout-summary').textContent=sets>0?`${sets} SETS // ~${Math.round(totalRestMins)}MIN REST // ~${Math.round(activeMins)}MIN ACTIVE // MET ${workMET}`:'PASTE WORKOUT ABOVE TO DETECT SETS';
+  const inclineMins=parseFloat(document.getElementById('incline-dur').value)||0;
+  const grade=parseFloat(document.getElementById('incline-grade').value)||5;
+  const iPace=parseFloat(document.getElementById('incline-pace').value)||4;
+  const iMET=inclineMET(grade,iPace);
+  const inclineCal=Math.round(iMET*w*(inclineMins/60));
+  const flatMins=parseFloat(document.getElementById('flat-dur').value)||0;
+  const fPace=parseFloat(document.getElementById('flat-pace').value)||4;
+  const fMET=flatMET(fPace);
+  const flatCal=Math.round(fMET*w*(flatMins/60));
+  const choresMins=parseFloat(document.getElementById('chores-dur').value)||0;
+  const choresCal=Math.round(2.5*w*(choresMins/60));
+  const sittingHrs=parseFloat(document.getElementById('sitting-hr').value)||0;
+  const sittingCal=Math.round((bmr/24)*sittingHrs);
+  const tdee=bmr+workoutTotal+inclineCal+flatCal+choresCal;
+  document.getElementById('bk-bmr').textContent=bmr.toLocaleString()+' kcal';
+  document.getElementById('bk-workout').textContent='+'+workoutActiveCal+' kcal ('+Math.round(activeMins)+'m)';
+  document.getElementById('bk-workout-rest').textContent='+'+workoutRestCal+' kcal ('+Math.round(totalRestMins)+'m)';
+  document.getElementById('bk-incline').textContent='+'+inclineCal+' kcal'+(inclineMins>0?' MET'+iMET.toFixed(1):'');
+  document.getElementById('bk-flat').textContent='+'+flatCal+' kcal'+(flatMins>0?' MET'+fMET.toFixed(1):'');
+  document.getElementById('bk-chores').textContent='+'+choresCal+' kcal';
+  document.getElementById('bk-sitting').textContent=sittingCal+' kcal';
+  document.getElementById('tdee-val').textContent=tdee.toLocaleString();
+  document.getElementById('lose-val').textContent=Math.round(tdee-550).toLocaleString()+' kcal';
+  document.getElementById('gain-val').textContent=Math.round(tdee+550).toLocaleString()+' kcal';
+  document.getElementById('active-note').textContent='ACTIVE BONUS: +'+(workoutTotal+inclineCal+flatCal+choresCal).toLocaleString()+' KCAL';
+}
+calc();
+</script>
+</body>
+</html>
+ 
